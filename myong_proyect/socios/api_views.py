@@ -1,10 +1,12 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from datetime import date
 
 from .models import Socio, Pago
 from .serializers import SocioSerializer, SocioCreateSerializer, PagoSerializer
+from .dni_utils import check_dni  # Función de validación de DNI 
+
 
 class SocioViewSet(viewsets.ModelViewSet):
     """
@@ -55,3 +57,25 @@ def pagos_por_socio(request, socio_id):
         'total_meses': pagos.count(),
         'total_pagado': sum(p.monto for p in pagos if p.pagado),
     })
+
+# Endpoint para validar DNI (ejemplo de función independiente)
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])  # Sin autenticación para este endpoint
+def check_dni_api(request):
+    """
+    Endpoint para validar un DNI español.
+    Recibe un JSON con {"documento": "12345678A"} y devuelve resultado de validación.
+    """    
+    documento = request.data.get('documento')
+    if not documento:
+        return Response({"error": "Campo 'documento' es requerido"}, status=status.HTTP_400_BAD_REQUEST) #Dni no proporcionado
+
+    resultado = check_dni(documento)
+
+
+    # Si el DNI es válido → 200
+    if resultado["valido"]:
+        return Response(resultado, status=status.HTTP_200_OK)
+
+    # Si es inválido → 400 (según criterio de aceptación)
+    return Response(resultado, status=status.HTTP_400_BAD_REQUEST)

@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .api_views import SocioViewSet, PagoViewSet, pagos_por_socio
+from .api_views import SocioViewSet, PagoViewSet, pagos_por_socio, check_dni_api
 
 # Crea el router y registra los ViewSets
 router = DefaultRouter()
@@ -15,4 +15,6 @@ urlpatterns = [
     path('', include(router.urls)),
     # Endpoint personalizado para pagos por socio
     path('socios/<uuid:socio_id>/pagos/', pagos_por_socio, name='api_pagos_socio'),
+    # Endpoint para validar DNI
+    path('check_dni/', check_dni_api, name='api_check_dni'),
 ]
