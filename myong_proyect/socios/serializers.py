@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Socio, Direccion, Tutor, Pago
+from .dni_utils import check_dni  # Función de validación de DNI
 
 class DireccionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -31,9 +32,27 @@ class SocioCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Socio
-        exclude = ['fecha_alta']  # Campo automático
-    
+        fields = '__all__'
+
+    # Validar el DNI antes de crear el socio
+    def validate_documento_identidad(self, value):
+        resultado = check_dni(value)
+        if not resultado["valido"]:
+            raise serializers.ValidationError("DNI no válido")
+        return value
+
+   
     def create(self, validated_data):
         direccion_data = validated_data.pop('direccion')
         direccion = Direccion.objects.create(**direccion_data)
         return Socio.objects.create(direccion=direccion, **validated_data)
+
+
+class DNIValidatorSerializer(serializers.CharField):
+    documento = serializers.CharField()
+
+    def validate_documento(self, value):
+        resultado = check_dni(value)
+        if not resultado["valido"]:
+            raise serializers.ValidationError("DNI no válido")
+        return value
