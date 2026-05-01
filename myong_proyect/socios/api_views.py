@@ -2,6 +2,11 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from datetime import date
+from rest_framework.views import APIView
+from rest_framework import generics
+from rest_framework_simplejwt.tokens import RefreshToken
+
+
 
 from .models import Socio, Pago
 from .serializers import SocioSerializer, SocioCreateSerializer, PagoSerializer
@@ -79,3 +84,66 @@ def check_dni_api(request):
 
     # Si es inválido → 400 (según criterio de aceptación)
     return Response(resultado, status=status.HTTP_400_BAD_REQUEST)
+
+class SocioListCreateView(generics.ListCreateAPIView):
+    """
+    GET: Listar todos los socios (requiere autenticación)
+    POST: Crear nuevo socio (requiere autenticación)
+    """
+    queryset = Socio.objects.all()
+    serializer_class = SocioSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class SocioDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET: Obtener detalle de un socio
+    PUT/PATCH: Actualizar socio
+    DELETE: Eliminar socio
+    """
+    queryset = Socio.objects.all()
+    serializer_class = SocioSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = 'pk'
+
+class PerfilView(APIView):
+    """
+    Endpoint para obtener información del usuario autenticado
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        return Response({
+            'usuario': request.user.username,
+            'email': request.user.email,
+            'socio_id': getattr(request.user, 'socio_id', None)
+        })
+
+class LogoutView(APIView):
+    """
+    POST: Invalidar el refresh token (logout)
+    Requiere enviar el refresh token en el body
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            refresh_token = request.data.get('refresh')
+            if not refresh_token:
+                return Response(
+                    {'error': 'Refresh token requerido'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            token = RefreshToken(refresh_token)
+            token.blacklist()  # Añade a lista negra
+            
+            return Response(
+                {'mensaje': 'Logout exitoso, token invalidado'}, 
+                status=status.HTTP_200_OK
+            )
+            
+        except Exception as e:
+            return Response(
+                {'error': str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )

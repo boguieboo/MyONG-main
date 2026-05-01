@@ -32,7 +32,8 @@ class SocioCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Socio
-        fields = '__all__'
+        fields = ['id', 'dni', 'nombre', 'apellidos', 'email', 'telefono', 'fecha_alta']
+        read_only_fields = ['id', 'fecha_alta']  # No se pueden modificar
 
     # Validar el DNI antes de crear el socio
     def validate_documento_identidad(self, value):
